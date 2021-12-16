@@ -10,17 +10,15 @@
 #include "handle_file.h"
 #include "x264.h"
 #define SIZE 65535
-#define PORT 8080
-
-int decode_264(char* vid_name){
-	//decode
-	char decode[4096];
-	sprintf(decode,"./x264/x264 --input-res 1920x1080 -o clt_database/mkv/%s.mkv clt_database/264/%s.264", vid_name, vid_name);
-	return system(decode);
-}
 int handle_dtb(int new_socket, char* file_name);
-int main(){
-
+int main(int argc, char *argv[]){
+	/*if(argc != 3){
+		fprintf(stderr, "Usage: \t./server <server ip> <server port>\n");
+		exit(0);
+	}*/
+	char* server_ip = "127.0.0.1"; //argv[1];
+	int server_port = 8080; //atoi(argv[2]);
+	fprintf(stderr, "%d\n", server_port);
 	int sockfd, ret;
 	struct sockaddr_in server_addr;
 
@@ -39,8 +37,8 @@ int main(){
 
 	memset(&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(PORT);
-	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server_addr.sin_port = htons(server_port);
+	server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
 	ret = bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
 	if(ret < 0){
@@ -163,11 +161,4 @@ int handle_dtb(int new_socket, char* file_name){
 	free(vid_mp4);
 	free(vid_264);
 	return return_val;
-}
-int encode_264(char* vid_name){
-	char encode[4096];
-	memset(encode, 0, 4096);
-	/*decode*/
-	sprintf(encode, "./x264/x264 -o svr_database/264/%s.264 svr_database/mp4/%s.mp4", vid_name, vid_name);
-	return system(encode);
 }

@@ -8,16 +8,15 @@
 #include <arpa/inet.h>
 #include "handle_file.h"
 #include "x264.h"
-#define PORT 8080
 #define SIZE 65535
+int main(int argc, char *argv[]){
+	if(argc != 3){
+		fprintf(stderr, "Usage: \t./client <server ip> <server port>\n");
+		exit(0);
+	}
+	char* server_ip = argv[1];
+	int server_port = atoi(argv[2]);
 
-int decode_264(char* vid_name){
-	//decode
-	char decode[4096];
-	sprintf(decode,"./x264/x264 --input-res 1920x1080 -o clt_database/mkv/%s.mkv clt_database/264/%s.264", vid_name, vid_name);
-	return system(decode);
-}
-int main(){
 	int client_socket, ret;
 	struct sockaddr_in server_addr;
 	client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -29,8 +28,8 @@ int main(){
 
 	memset(&server_addr, '\0', sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(PORT);
-	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server_addr.sin_port = htons(server_port);
+	server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
 	ret = connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 	if(ret < 0){
@@ -40,40 +39,75 @@ int main(){
 	printf("Connected to Server.\n");
 	
 	while(1){
-		char vid_name[25];
-		printf("Client:\t");
-		fflush(stdin);
-		gets(vid_name);
-		if(strcmp(vid_name, ":q") == 0){
-			close(client_socket);
-			printf("Disconnected from server.\n");
-			exit(1);
+		//printf("Client:\t");
+		char* vid_name = (char*) calloc(30,sizeof(char));
+		FILE *pytalk = fopen("com/pytalk.txt", "r");
+		if(pytalk == NULL){
+			fprintf(stderr, "\rCan not read pytalk.txt ");
+			exit(0);
 		}
-		send(client_socket, vid_name, strlen(vid_name), 0);
 
-		char *path_264 = (char*) calloc(sizeof(vid_name)+22, sizeof(char));
-		sprintf(path_264,"clt_database/264/%s.264",vid_name);
+		/* get the length of file content*/
+		fseek(pytalk, 0, SEEK_END);
+		long file_len = ftell(pytalk);
+		rewind(pytalk);
+		fprintf(stderr, "\rLen is %ld", file_len);
+
+		if(file_len <= 0){
+			fclose(pytalk);
+		}
+		else if(file_len > 0){
+			/*if video name was written to pytalk, read it then send to server and clear the file for next loop*/
+			fgets(vid_name, sizeof(vid_name), pytalk);
+			fprintf(stderr, "%s\n", vid_name);
+			if(strcmp(vid_name, ":q") == 0){
+				close(client_socket);
+				printf("Disconnected from server.\n");
+				exit(1);
+			}
+			send(client_socket, vid_name, strlen(vid_name), 0);
+			fclose(pytalk);
+			FILE* fp = fopen("com/pytalk.txt", "w");
+			fclose(fp);
+
+			/* receiving process*/
+			char *path_264 = (char*) calloc(sizeof(vid_name)+22, sizeof(char));
+			sprintf(path_264,"clt_database/264/%s.264",vid_name);
+			int val = recv_file(client_socket, path_264);
+			free(path_264);
 		
-		int val = recv_file(client_socket, path_264);
-		free(path_264);
-		if (val == -1){
-			fprintf(stderr, "Server:\tFile does not exist\n");
+			int ctalk_val;		//ctalk_val is value that would be written to ctalk to tell client.py about server response
+			if (val == -1){
+				fprintf(stderr, "Server:\tFile does not exist\n");
+				ctalk_val -1;
+			}
+			else if(val == 0){
+				fprintf(stderr, "Error in reciving file\n");
+				ctalk_val = 0;
+			}else if(val == 1){
+				fprintf(stderr, "Done!\n");
+				fprintf(stderr, "Start decoding...\n");
+				if(!decode_264(vid_name)){
+					ctalk_val = 1;
+					fprintf(stderr, "'%s.264' was decoded to '%s.mkv'\n", vid_name, vid_name);
+				}else{
+					ctalk_val = 0;
+					fprintf(stderr, "Error in decoding\n");
+				}
+				/*
+				//play
+				char play[2048];
+				sprintf(play," xdg-open clt_database/mkv/%s.mkv", vid_name);
+				system(play);
+				*/
+			}
+			/*wtrite ctalk_val to ctalk.txt then client.py would read it*/
+			//fprintf(stderr, "ctalk_val is %d\n", ctalk_val);
+			FILE* ctalk = fopen("com/ctalk.txt", "w");
+			fprintf(ctalk, "%d", ctalk_val);
+			fclose(ctalk);
 		}
-		else if(val == 0){
-			fprintf(stderr, "Error in reciving file\n");
-		}else if(val == 1){
-			fprintf(stderr, "Done!\n");
-			fprintf(stderr, "Start decoding...\n");
-			if(!decode_264(vid_name))
-				fprintf(stderr, "'%s.264' was decoded to '%s.mkv'\n", vid_name, vid_name);
-			else
-				fprintf(stderr, "Error in decoding\n");
-
-			//play
-			char play[2048];
-			sprintf(play," xdg-open clt_database/mkv/%s.mkv", &vid_name);
-			system(play);
-		}
+		free(vid_name);
 	}
 	return 0;
 }
