@@ -1,5 +1,5 @@
-#ifndef HANDLE_FILE_H
-#define HANDLE_FILE_H
+#ifndef HANDLE_FILE_H_
+#define HANDLE_FILE_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,9 +11,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SIZE 65535
-
+extern const int msg_len;
 int search_file(char *dir_name, char* file_name);
 int send_file(int client_socket, FILE* fp);
 int recv_file(int socket, char* path_264);
+void recv_msg(int socket, char* buf, int buf_len);
+void send_msg(int socket, char* buf, int buf_len);
 #endif
