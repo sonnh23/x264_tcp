@@ -8,7 +8,7 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtCore import QThread, QObject, pyqtSignal
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, QProcess
 
 class ThreadClass(QtCore.QThread):
     signal = pyqtSignal(int)
@@ -17,12 +17,12 @@ class ThreadClass(QtCore.QThread):
         super().__init__()
         self.index = index
 
-    def run(self):
+    def c_read(self):
         print('Starting thread...', self.index)
         counter = 0
         while True:
             time.sleep(1)
-            file1 = open("ctalk.txt", "r+")
+            file1 = open("com/ctalk.txt", "r+")
             data = file1.read()
             print ("Length file is: ",len(data))
             if (len(data)==0):
@@ -38,6 +38,10 @@ class ThreadClass(QtCore.QThread):
             file1.truncate(0)
             file1.close()
             self.signal.emit(counter)
+
+    def stop(self):
+        print("Stopping Thread", self.index)
+        self.terminate()
 
 class Window(QWidget):
     def __init__(self):
@@ -74,13 +78,11 @@ class Window(QWidget):
 
         #create search button
         self.searchButton = QPushButton('Search')
-        self.searchButton.clicked.connect(self.start_worker_1)
+        self.searchButton.clicked.connect(self.start_reading)
 
         #create connect and disconnect button
         self.connectButton = QPushButton('Connect')
-        #self.searchButton.clicked.connect(self.searchVideo)
         self.disconnectButton = QPushButton('Disconnect')
-        #self.disconnectButton.clicked.connect(self.searchVideo)
 
         #create button for playing
         self.playBtn = QPushButton()
@@ -135,25 +137,43 @@ class Window(QWidget):
 
         self.setLayout(vboxLayout)
         self.mediaPlayer.setVideoOutput(videowidget)
+        self.connectButton.clicked.connect(self.connect)
+        self.disconnectButton.clicked.connect(self.disconnect)
 
         #media player signals
         self.mediaPlayer.stateChanged.connect(self.mediastate_changed)
         self.mediaPlayer.positionChanged.connect(self.position_changed)
         self.mediaPlayer.durationChanged.connect(self.duration_changed)
 
-    def start_worker_1(self):
+    def start_reading(self):
         self.thread[1] = ThreadClass(index=1)
         self.thread[1].start()
-        self.thread[1].signal.connect(self.my_function)
+        self.thread[1].signal.connect(self.search_function)
         #self.searchButton.setEnabled(False)
         self.searchButton.setEnabled(True)
 
-    def my_function(self, counter):
-        m = counter
-        file_py = open("pytalk.txt", "w")
+    def start_writing(self):
+        self.thread[2] = ThreadClass(index=2)
+        self.thread[2].start()
+        self.thread[2].signal.connect(self.write_function)
+        #self.searchButton.setEnabled(False)
+        self.searchButton.setEnabled(True)
+
+    def write_function(self):
+        file_py = open("com/pytalk.txt", "w")
         video_name = self.searchBar.text()
         file_py.write(video_name)
         file_py.close()
+        self.thread[2].terminate()
+
+    def search_function(self, counter):
+        m = counter
+        """file_py = open("com/pytalk.txt", "w")
+        video_name = self.searchBar.text()
+        file_py.write(video_name)
+        file_py.close()"""
+        #search_valid = False
+        #file C gửi trạng thái của Video tìm kiếm
         if m == -1:
             self.label.setText("File is not existed")
         elif m == 0:
@@ -163,10 +183,27 @@ class Window(QWidget):
             #self.label.hide()
         elif m == 1:
             self.label.setText("Playing Video")
-            filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
+            print("Video Received")
+            """filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
             if filename != '':
                 self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(filename)))
-                self.playBtn.setEnabled(True)
+                self.playBtn.setEnabled(True)"""
+        self.thread[1].terminate()
+
+    def connect(self):
+        ip = self.IpBar.text()
+        port = self.PortBar.text()
+        # "/client <server_ip> <server_port>
+        cmd = "./client " + ip + " " + port
+        #os.system(cmd)
+        proc = QProcess()
+        proc.startDetached(cmd)
+
+    def disconnect(self):
+        dis_data = ":q"
+        file1 = open("com/pytalk.txt", "w")
+        file1.write(dis_data)
+        file1.close()
 
     def open_file(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Open Video")

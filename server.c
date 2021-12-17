@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include "handle_file.h"
 #include "x264.h"
-#define SIZE 65535
+const int msg_len = 65536;
 int handle_dtb(int new_socket, char* file_name);
 int main(int argc, char *argv[]){
 	/*if(argc != 3){
@@ -18,7 +18,6 @@ int main(int argc, char *argv[]){
 	}*/
 	char* server_ip = "127.0.0.1"; //argv[1];
 	int server_port = 8080; //atoi(argv[2]);
-	fprintf(stderr, "%d\n", server_port);
 	int sockfd, ret;
 	struct sockaddr_in server_addr;
 
@@ -45,14 +44,12 @@ int main(int argc, char *argv[]){
 		printf("Error in binding.\n");
 		exit(1);
 	}
-	printf("Binding sucessfully\n");
-
+	printf("Binding sucessfully\tIP: %s\tPORT: %d\n", server_ip, server_port);
 	if(listen(sockfd, 10) == 0){
 		printf("Listening....\n");
 	}else{
 		printf("Error in listening.\n");
 	}
-
 	while(1){
 		addr_size = sizeof(new_addr);
 		new_socket = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size);
@@ -64,18 +61,22 @@ int main(int argc, char *argv[]){
 
 		if((child_pid = fork()) == 0){
 			close(sockfd);
-			char buffer[SIZE];
-			while(1){
-                bzero(buffer,SIZE);
-				int n = recv(new_socket, buffer, SIZE, 0);
+			char buffer[msg_len];
+			int dis_sig = 0;
+			while(dis_sig == 0){
+                bzero(buffer,msg_len);
+				int n = recv(new_socket, buffer, msg_len, 0);
 				if(n<=0){
 					printf("Error in receiving file name from %s :%d\n",inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
 					exit(1);
 				}
 				else{
 					if(strcmp(buffer, ":q") == 0){
+						close(new_socket);
 						printf("Disconnected from %s\t:%d\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
-						break;
+						FILE *pytalk = fopen("com/pytalk.txt", "w");
+						fclose(pytalk);
+						dis_sig =1;
 					}else{
 						char* file_name = (char*) calloc(sizeof(buffer), sizeof(char));
 						strcpy(file_name, buffer);
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]){
 							free(path);
 							free(file_name);
 							fprintf(stderr, "Sending '%s.264' ...\n", buffer);
-							bzero(buffer, SIZE);
+							bzero(buffer, msg_len);
 							send_file(new_socket, fp);
 							
 							fclose(fp);
@@ -98,7 +99,6 @@ int main(int argc, char *argv[]){
 			}
 		}
 	}
-	close(new_socket);
 	return 0;
 }
 int handle_dtb(int new_socket, char* file_name){
@@ -136,13 +136,13 @@ int handle_dtb(int new_socket, char* file_name){
 					break;
 				}
 				case 0:{
-					fprintf(stderr, "[+] File '%s' is does not encoded, start encoding...\n", vid_mp4);
+					fprintf(stderr, "File '%s' is does not encoded, start encoding...\n", vid_mp4);
 					if(!encode_264(file_name)){
-						fprintf(stderr, "[+] '%s.mp4' was encoded to '%s.264'\n", file_name, file_name);
+						fprintf(stderr, "'%s.mp4' was encoded to '%s.264'\n", file_name, file_name);
 						return_val = 0;
 					}
 					else{
-						fprintf(stderr, "[-] Error in encoding '%s.mp4\n", file_name);
+						fprintf(stderr, "Error in encoding '%s.mp4\n", file_name);
 					return_val = -1;
 					}
 					break;

@@ -8,14 +8,16 @@
 #include <arpa/inet.h>
 #include "handle_file.h"
 #include "x264.h"
-#define SIZE 65535
+const int msg_len = 65536;
 int main(int argc, char *argv[]){
+	/*
 	if(argc != 3){
 		fprintf(stderr, "Usage: \t./client <server ip> <server port>\n");
 		exit(0);
 	}
-	char* server_ip = argv[1];
-	int server_port = atoi(argv[2]);
+	*/
+	char* server_ip = "127.0.0.1";//argv[1];
+	int server_port = 8080; //atoi(argv[2]);
 
 	int client_socket, ret;
 	struct sockaddr_in server_addr;
@@ -51,7 +53,7 @@ int main(int argc, char *argv[]){
 		fseek(pytalk, 0, SEEK_END);
 		long file_len = ftell(pytalk);
 		rewind(pytalk);
-		fprintf(stderr, "\rLen is %ld", file_len);
+		//fprintf(stderr, "\rLen is %ld", file_len);
 
 		if(file_len <= 0){
 			fclose(pytalk);
@@ -61,6 +63,7 @@ int main(int argc, char *argv[]){
 			fgets(vid_name, sizeof(vid_name), pytalk);
 			fprintf(stderr, "%s\n", vid_name);
 			if(strcmp(vid_name, ":q") == 0){
+				send(client_socket, vid_name, strlen(vid_name), 0);
 				close(client_socket);
 				printf("Disconnected from server.\n");
 				exit(1);
