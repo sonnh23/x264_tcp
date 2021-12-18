@@ -94,11 +94,11 @@ int main(int argc, char *argv[]){
 				int ctalk_val;		//ctalk_val is value that would be written to ctalk to tell client.py about server response
 				if (val == -1){
 					fprintf(stderr, "[!] Server:\tFile does not exist\n");
-					ctalk_val -1;
+					ctalk_val = 0;
 				}
 				else if(val == 0){
 					fprintf(stderr, "Error in reciving file\n");
-					ctalk_val = 0;
+					ctalk_val = 2;
 				}else if(val == 1){
 					fprintf(stderr, "Done!\n");
 					fprintf(stderr, "Start decoding...\n");
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
 						ctalk_val = 1;
 						fprintf(stderr, "'%s.264' was decoded to '%s.mkv'\n", vid_name, vid_name);
 					}else{
-						ctalk_val = 0;
+						ctalk_val = 2;
 						fprintf(stderr, "Error in decoding\n");
 					}
 				}
@@ -139,11 +139,11 @@ int main(int argc, char *argv[]){
 			int ctalk_val;		//ctalk_val is value that would be written to ctalk to tell client.py about server response
 			if (val == -1){
 				fprintf(stderr, "[!] Server:\tFile does not exist\n");
-				ctalk_val -1;
+				ctalk_val = 0;
 			}
 			else if(val == 0){
 				fprintf(stderr, "Error in reciving file\n");
-				ctalk_val = 0;
+				ctalk_val = 2;
 			}else if(val == 1){
 				fprintf(stderr, "Done!\n");
 				fprintf(stderr, "Start decoding...\n");
