@@ -7,5 +7,4 @@
 
 int encode_264(char* vid_name);
 int decode_264(char* vid_name);
-
 #endif

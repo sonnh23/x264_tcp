@@ -14,19 +14,18 @@ int send_file(int client_socket, FILE* fp){
 
 	//send binary file
 	if (file_size > 0){
-        char buffer[SIZE];
+        char buffer[msg_len];
 		long bytes_left = file_size;
 		int count = 0;
         while(bytes_left > 0){
-			bzero(buffer, SIZE);
+			bzero(buffer, msg_len);
 			size_t num;
 			if(bytes_left < sizeof(buffer))
 				num = bytes_left;
 			else
 				num = sizeof(buffer);
             num = fread(buffer, 1, num, fp);
-
-            num = send(client_socket, buffer, num, 0);
+            send_msg(client_socket, buffer, num);
             bytes_left -= num;
 			//fprintf(stderr, "%d\t\t%ld\t\t%ld\t\t\n",count, num, bytes_left);
 			fprintf(stderr,"\rSent %ld / %ld bytes\t",file_size - bytes_left, file_size);
@@ -52,31 +51,31 @@ int search_file(char *dir_name, char* file_name){
 	return 0;
 }
 int recv_file(int socket, char* path_264){
-	char buffer[SIZE];
-	recv(socket, buffer, SIZE, 0);
+	char buffer[msg_len];
+	recv(socket, buffer, msg_len, 0);
 	char* ptr;
 	long file_size = strtol(buffer, &ptr, 10);		//get size of binary file.
 	if(file_size <= 0){
 		return -1;
 	}
 
-	fprintf(stderr, "Server:\tFile has size of %ld bytes, start transferring...\n", file_size);
+	fprintf(stderr, "[!] Server:\tFile encoded has size of %ld bytes, start transferring...\n", file_size);
 	FILE *fp = fopen(path_264, "wb");
 	if(fp == NULL)
 		return 0;
 	else{
-		bzero(buffer,SIZE);
+		bzero(buffer,msg_len);
 		long bytes_left = file_size;
 		size_t len;
 		int count =0;
 		while (bytes_left > 0){
-			bzero(buffer,SIZE);
+			bzero(buffer,msg_len);
 			if(bytes_left < sizeof(buffer))
 				len= bytes_left;
 			else
 				len = sizeof(buffer);
 
-			len = recv(socket, buffer, len, 0);
+			recv_msg(socket, buffer, len);
 			
 			bytes_left -= len;
 			//fprintf(stderr, "%d\t\t%ld\t\t%ld\t\t\n",count, len, bytes_left);
@@ -89,4 +88,18 @@ int recv_file(int socket, char* path_264){
 		};
 	}
 	fclose(fp);
+}
+void recv_msg(int socket, char* buf, int buf_len){
+    while (buf_len > 0){
+        int num = recv(socket, buf, buf_len, 0);
+        //buf += num;
+        buf_len -= num;
+    }
+}
+void send_msg(int socket, char* buf, int buf_len){
+    while (buf_len > 0){
+        int num = send(socket, buf, buf_len, 0);
+        //buf += num;
+        buf_len -= num;
+    }
 }

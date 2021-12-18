@@ -20,24 +20,21 @@ class ThreadClass(QtCore.QThread):
     def c_read(self):
         print('Starting thread...', self.index)
         counter = 0
-        while True:
-            time.sleep(1)
-            file1 = open("com/ctalk.txt", "r+")
-            data = file1.read()
+        file1 = open("com/ctalk.txt", "r+")
+        data = file1.read()
+        while(data > 0):
+            time.sleep(1)    
             print ("Length file is: ",len(data))
-            if (len(data)==0):
-                counter = -2
-            elif (len(data)==1 or len(data)==2):
-                if data == "-1":
-                    counter = -1 #File is not existed
-                elif data == "0":
-                    counter = 0 #Error in transferring
-                elif data == "1":
-                    counter = 1 #OK
-
+            if data == "-1":
+                counter = -1 #File is not existed
+            elif data == "0":
+                counter = 0 #Error in transferring
+            elif data == "1":
+                counter = 1 #OK
             file1.truncate(0)
-            file1.close()
             self.signal.emit(counter)
+        file1.close()
+            
 
     def stop(self):
         print("Stopping Thread", self.index)
@@ -78,11 +75,13 @@ class Window(QWidget):
 
         #create search button
         self.searchButton = QPushButton('Search')
-        self.searchButton.clicked.connect(self.start_reading)
+        self.searchButton.clicked.connect(self.start_worker_1)
 
         #create connect and disconnect button
         self.connectButton = QPushButton('Connect')
+        #self.searchButton.clicked.connect(self.searchVideo)
         self.disconnectButton = QPushButton('Disconnect')
+        #self.disconnectButton.clicked.connect(self.searchVideo)
 
         #create button for playing
         self.playBtn = QPushButton()
@@ -145,26 +144,12 @@ class Window(QWidget):
         self.mediaPlayer.positionChanged.connect(self.position_changed)
         self.mediaPlayer.durationChanged.connect(self.duration_changed)
 
-    def start_reading(self):
+    def start_worker_1(self):
         self.thread[1] = ThreadClass(index=1)
         self.thread[1].start()
         self.thread[1].signal.connect(self.search_function)
         #self.searchButton.setEnabled(False)
         self.searchButton.setEnabled(True)
-
-    def start_writing(self):
-        self.thread[2] = ThreadClass(index=2)
-        self.thread[2].start()
-        self.thread[2].signal.connect(self.write_function)
-        #self.searchButton.setEnabled(False)
-        self.searchButton.setEnabled(True)
-
-    def write_function(self):
-        file_py = open("com/pytalk.txt", "w")
-        video_name = self.searchBar.text()
-        file_py.write(video_name)
-        file_py.close()
-        self.thread[2].terminate()
 
     def search_function(self, counter):
         m = counter
@@ -193,8 +178,8 @@ class Window(QWidget):
     def connect(self):
         ip = self.IpBar.text()
         port = self.PortBar.text()
-        # "/client <server_ip> <server_port>
-        cmd = "./client " + ip + " " + port
+        # "/client <server_ip> <server_port> -g"
+        cmd = "./client " + ip + " " + port + " -g"
         #os.system(cmd)
         proc = QProcess()
         proc.startDetached(cmd)

@@ -57,38 +57,42 @@ int main(int argc, char *argv[]){
             perror("Error in connecting.\n");
 			exit(1);
 		}
-		printf("Connection accepted from %s\t:%d\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
+		printf("\n[+] Connection accepted from %s\t:%d\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
 
 		if((child_pid = fork()) == 0){
 			close(sockfd);
 			char buffer[msg_len];
-			int dis_sig = 0;
-			while(dis_sig == 0){
+			while(1){
                 bzero(buffer,msg_len);
 				int n = recv(new_socket, buffer, msg_len, 0);
 				if(n<=0){
-					printf("Error in receiving file name from %s :%d\n",inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
+					printf("Error in receiving file name from %s: %d\n",inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
 					exit(1);
 				}
 				else{
 					if(strcmp(buffer, ":q") == 0){
 						close(new_socket);
-						printf("Disconnected from %s\t:%d\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
+						printf("[-] Disconnected from %s: %d\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
 						FILE *pytalk = fopen("com/pytalk.txt", "w");
 						fclose(pytalk);
-						dis_sig =1;
+						exit(0);
 					}else{
+						//if client requests for webcam video:
+						/*
+						if(strcmp(buffer, "webcam") == 0){
+							char *record = "ffmpeg -f v4l2 -framerate 25 -video_size 640x480 -i /dev/video0 svr_database/mp4/webcam.mp4";
+							system(record);
+						}*/
 						char* file_name = (char*) calloc(sizeof(buffer), sizeof(char));
 						strcpy(file_name, buffer);
-						fprintf(stderr,"[+] Client %s: %d is requesting for: '%s.mp4'\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port), buffer);
-						fprintf(stderr, "%s\n", file_name);
+						fprintf(stderr,"Client %s: %d is requesting for: '%s.mp4'\n", inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port), buffer);
 						if(!handle_dtb(new_socket, file_name)){
 							char* path = (char*) calloc(sizeof(file_name) +22, sizeof(char));
 							sprintf(path, "svr_database/264/%s.264", file_name);
 							FILE *fp = fopen(path,"rb");
 							free(path);
 							free(file_name);
-							fprintf(stderr, "Sending '%s.264' ...\n", buffer);
+							fprintf(stderr, "Sending '%s.264' to %s: %d ...\n", buffer, inet_ntoa(new_addr.sin_addr), ntohs(new_addr.sin_port));
 							bzero(buffer, msg_len);
 							send_file(new_socket, fp);
 							
@@ -130,7 +134,7 @@ int handle_dtb(int new_socket, char* file_name){
 			//search in 264 folder, check if video is encoded or not
 			switch(search_file(dir_264, vid_264)){
 				case -1:{
-					fprintf(stderr, "[-] Can not open %s\n", dir_264);
+					fprintf(stderr, "Can not open %s\n", dir_264);
 					send(new_socket,"-1",2,0);
 					return_val = -1;
 					break;
@@ -148,7 +152,7 @@ int handle_dtb(int new_socket, char* file_name){
 					break;
 				}
 				case 1:{
-					fprintf(stderr, "[-] File '%s' is already encoded to '%s'\n", vid_mp4, vid_264);
+					fprintf(stderr, "File '%s' is already encoded to '%s'\n", vid_mp4, vid_264);
 					return_val = 0;
 					break;
 				}
