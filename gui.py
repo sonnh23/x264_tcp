@@ -9,6 +9,7 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, QProcess
+counter = 0
 
 class ThreadClass(QtCore.QThread):
     signal = pyqtSignal(int)
@@ -17,14 +18,14 @@ class ThreadClass(QtCore.QThread):
         super().__init__()
         self.index = index
 
-    def c_read(self):
+    def run(self):
         print('Starting thread...', self.index)
-        counter = 0
+        global counter
         file1 = open("com/ctalk.txt", "r+")
         data = file1.read()
-        while(data > 0):
-            time.sleep(1)    
-            print ("Length file is: ",len(data))
+        while True:
+            time.sleep(0.1)
+            counter += 1
             if data == "-1":
                 counter = -1 #File is not existed
             elif data == "0":
@@ -34,7 +35,6 @@ class ThreadClass(QtCore.QThread):
             file1.truncate(0)
             self.signal.emit(counter)
         file1.close()
-            
 
     def stop(self):
         print("Stopping Thread", self.index)
@@ -75,13 +75,12 @@ class Window(QWidget):
 
         #create search button
         self.searchButton = QPushButton('Search')
-        self.searchButton.clicked.connect(self.start_worker_1)
+        # read from C
+        self.searchButton.clicked.connect(self.start_reading)
 
         #create connect and disconnect button
         self.connectButton = QPushButton('Connect')
-        #self.searchButton.clicked.connect(self.searchVideo)
         self.disconnectButton = QPushButton('Disconnect')
-        #self.disconnectButton.clicked.connect(self.searchVideo)
 
         #create button for playing
         self.playBtn = QPushButton()
@@ -144,43 +143,47 @@ class Window(QWidget):
         self.mediaPlayer.positionChanged.connect(self.position_changed)
         self.mediaPlayer.durationChanged.connect(self.duration_changed)
 
-    def start_worker_1(self):
+    def start_reading(self):
         self.thread[1] = ThreadClass(index=1)
         self.thread[1].start()
-        self.thread[1].signal.connect(self.search_function)
+        self.thread[1].signal.connect(self.c_read)
         #self.searchButton.setEnabled(False)
         self.searchButton.setEnabled(True)
 
-    def search_function(self, counter):
+    def c_read(self, counter):
         m = counter
-        """file_py = open("com/pytalk.txt", "w")
+        print("Trang thai cua C", m)
+        #file py ghi
+        file_py = open("com/pytalk.txt", "w")
         video_name = self.searchBar.text()
         file_py.write(video_name)
-        file_py.close()"""
-        #search_valid = False
+        file_py.close()
         #file C gửi trạng thái của Video tìm kiếm
         if m == -1:
             self.label.setText("File is not existed")
+            file1 = open("com/ctalk.txt", "r+")
+            file1.truncate(0)
+            self.thread[1].terminate()
         elif m == 0:
             self.label.setText("Error in the transfer process")
-        elif m == -2:
-            self.label.setText("C chua noi gi ca")
-            #self.label.hide()
+            file1 = open("com/ctalk.txt", "r+")
+            file1.truncate(0)
+            self.thread[1].terminate()
         elif m == 1:
             self.label.setText("Playing Video")
+            self.playBtn.setEnabled(True)
+            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile("caobang.mp4")))
+            self.mediaPlayer.play()
             print("Video Received")
-            """filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
-            if filename != '':
-                self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(filename)))
-                self.playBtn.setEnabled(True)"""
-        self.thread[1].terminate()
+            file1 = open("com/ctalk.txt", "r+")
+            file1.truncate(0)
+            self.thread[1].terminate()
 
     def connect(self):
         ip = self.IpBar.text()
         port = self.PortBar.text()
-        # "/client <server_ip> <server_port> -g"
+        # "/client <server_ip> <server_port>
         cmd = "./client " + ip + " " + port + " -g"
-        #os.system(cmd)
         proc = QProcess()
         proc.startDetached(cmd)
 
