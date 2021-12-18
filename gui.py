@@ -9,8 +9,9 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtGui import QIcon, QPalette
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, QProcess
-counter = 0
-
+counter = 8
+video_state = 8
+terminate_sig = False
 class ThreadClass(QtCore.QThread):
     signal = pyqtSignal(int)
 
@@ -21,20 +22,18 @@ class ThreadClass(QtCore.QThread):
     def run(self):
         print('Starting thread...', self.index)
         global counter
-        file1 = open("com/ctalk.txt", "r+")
-        data = file1.read()
         while True:
-            time.sleep(0.1)
-            counter += 1
-            if data == "-1":
-                counter = -1 #File is not existed
+            file1 = open("com/ctalk.txt", "r")
+            data = file1.read()
+            if data == "2":
+                counter = 2 #Error in transferring
             elif data == "0":
-                counter = 0 #Error in transferring
+                counter = 0 #File does not existed
             elif data == "1":
-                counter = 1 #OK
-            file1.truncate(0)
+                counter = 1
+            time.sleep(1)
             self.signal.emit(counter)
-        file1.close()
+            file1.close()
 
     def stop(self):
         print("Stopping Thread", self.index)
@@ -136,7 +135,7 @@ class Window(QWidget):
         self.setLayout(vboxLayout)
         self.mediaPlayer.setVideoOutput(videowidget)
         self.connectButton.clicked.connect(self.connect)
-        self.disconnectButton.clicked.connect(self.disconnect)
+        self.disconnectButton.clicked.connect(self.stop_thread_1)
 
         #media player signals
         self.mediaPlayer.stateChanged.connect(self.mediastate_changed)
@@ -144,40 +143,62 @@ class Window(QWidget):
         self.mediaPlayer.durationChanged.connect(self.duration_changed)
 
     def start_reading(self):
-        self.thread[1] = ThreadClass(index=1)
-        self.thread[1].start()
-        self.thread[1].signal.connect(self.c_read)
+        global terminate_sig, counter
+        if (terminate_sig == True):
+            #self.stop_thread_1()
+            print ("Thread Again")
+            file1 = open("com/ctalk.txt", "w")
+            print("Trang thai", terminate_sig)
+            file1.close()
+            terminate_sig = False
+        if (terminate_sig == False):
+            counter = 8
+            self.thread[1] = ThreadClass(index=1)
+            self.thread[1].start()
+            self.thread[1].signal.connect(self.c_read)
         #self.searchButton.setEnabled(False)
         self.searchButton.setEnabled(True)
 
+    def stop_thread_1(self):
+        self.thread[1].stop()
+
     def c_read(self, counter):
-        m = counter
-        print("Trang thai cua C", m)
-        #file py ghi
-        file_py = open("com/pytalk.txt", "w")
-        video_name = self.searchBar.text()
-        file_py.write(video_name)
-        file_py.close()
-        #file C gửi trạng thái của Video tìm kiếm
-        if m == -1:
-            self.label.setText("File is not existed")
-            file1 = open("com/ctalk.txt", "r+")
-            file1.truncate(0)
-            self.thread[1].terminate()
-        elif m == 0:
-            self.label.setText("Error in the transfer process")
-            file1 = open("com/ctalk.txt", "r+")
-            file1.truncate(0)
-            self.thread[1].terminate()
-        elif m == 1:
-            self.label.setText("Playing Video")
-            self.playBtn.setEnabled(True)
-            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile("caobang.mp4")))
-            self.mediaPlayer.play()
-            print("Video Received")
-            file1 = open("com/ctalk.txt", "r+")
-            file1.truncate(0)
-            self.thread[1].terminate()
+        global terminate_sig, video_state
+        if (terminate_sig == False):
+            m = counter
+            i = self.sender().index
+            print ("Running", m)
+            print ("Trang thai", terminate_sig)
+            if(m == 8):
+                file_py = open("com/pytalk.txt", "w")
+                video_name = self.searchBar.text()
+                file_py.write(video_name)
+                file_py.close()
+                """file_py = open("com/pytalk.txt", "r+")
+                file_py.truncate(0)
+                file_py.close()"""
+
+            #file C gửi trạng thái của Video tìm kiếm
+            elif m == 0:
+                self.label.setText("File is not existed")
+                #file1 = open("com/ctalk.txt", "r+")
+                #file1.truncate(0)
+                terminate_sig = True
+            elif m == 2:
+                self.label.setText("Error in the transfer process")
+                #file1 = open("com/ctalk.txt", "r+")
+                #file1.truncate(0)
+                terminate_sig = True
+            elif m == 1:
+                """self.label.setText("Playing Video")
+                self.playBtn.setEnabled(True)
+                self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile("F:/pyQT5/model.mp4")))
+                self.mediaPlayer.play()
+                print("Video Received")
+                #file1 = open("com/ctalk.txt", "r+")
+                #file1.truncate(0)"""
+                print ("Video Received")
+                terminate_sig = True
 
     def connect(self):
         ip = self.IpBar.text()

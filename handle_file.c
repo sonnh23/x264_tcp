@@ -1,15 +1,26 @@
 #include "handle_file.h"
 
+long get_file_size(char* file_path){
+    FILE *fp = fopen(file_path, "r");
+    if(fp == NULL)
+        return -1;
+    fseek(fp, 0, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+    fclose(fp);
+    return file_size;
+}
+/*
 int send_file(int client_socket, FILE* fp){
 
-	/*get size of file*/
+	//get size of file
 	fseek(fp, 0, SEEK_END);
     long file_size = ftell(fp);
     rewind(fp);
 	char size_str[20];
 	sprintf(size_str, "%ld", file_size);
 
-	/*send size of file to client*/
+	//send size of file to client
 	send(client_socket, size_str, sizeof(size_str), 0);
 
 	//send binary file
@@ -34,6 +45,36 @@ int send_file(int client_socket, FILE* fp){
 			count++;
         };
     }
+}*/
+int send_vid(int client_socket, vid_obj_t* vid_obj){
+	long file_size = vid_obj->size_264;
+	char size_264[20];
+	sprintf(size_264, "%ld", file_size);
+	fprintf(stderr, "size of 264 file: %ld\n", file_size);
+	send(client_socket, size_264, sizeof(size_264), 0);
+	FILE *fp = fopen(vid_obj->path_264, "r");
+	if (file_size > 0){
+        char buffer[msg_len];
+		long bytes_left = file_size;
+		int count = 0;
+        while(bytes_left > 0){
+			bzero(buffer, msg_len);
+			size_t num;
+			if(bytes_left < sizeof(buffer))
+				num = bytes_left;
+			else
+				num = sizeof(buffer);
+            num = fread(buffer, 1, num, fp);
+            send_msg(client_socket, buffer, num);
+            bytes_left -= num;
+			//fprintf(stderr, "%d\t\t%ld\t\t%ld\t\t\n",count, num, bytes_left);
+			fprintf(stderr,"\rSent %ld / %ld bytes\t",file_size - bytes_left, file_size);
+			if(bytes_left == 0)
+				fprintf(stderr,"Done!\n");
+			count++;
+        };
+    }
+	fclose(fp);
 }
 int search_file(char *dir_name, char* file_name){
 	DIR *dp;
