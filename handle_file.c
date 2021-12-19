@@ -50,7 +50,6 @@ int send_vid(int client_socket, vid_obj_t* vid_obj){
 	long file_size = vid_obj->size_264;
 	char size_264[20];
 	sprintf(size_264, "%ld", file_size);
-	fprintf(stderr, "size of 264 file: %ld\n", file_size);
 	send(client_socket, size_264, sizeof(size_264), 0);
 	FILE *fp = fopen(vid_obj->path_264, "r");
 	if (file_size > 0){

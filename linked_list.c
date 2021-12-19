@@ -149,11 +149,21 @@ vid_obj_t* ll_find_vid_name(linked_list_t *list, char* vid_name){
   }
   ll_node_t *curr = list->head;
   while (curr != NULL) {
-    fprintf(stderr, "%s\t%s\n", curr->object->name, vid_name);
+    //fprintf(stderr, "%s\t%s\n", curr->object->name, vid_name);
     if (!strcmp(curr->object->name, vid_name)) {
       return curr->object;
     }
     curr = curr->next;
   }
   return NULL;
+}
+void ll_print_vid_name(linked_list_t* list){
+  ll_node_t* curr = list->head;
+  while (curr != NULL){
+    printf("%s.mp4\n", curr->object->name);
+    curr = curr->next;
+  }
+  printf("=>Found %d videos in database\n", list->length);
+  printf("________________________\n");
+  
 }

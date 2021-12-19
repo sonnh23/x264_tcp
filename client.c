@@ -146,7 +146,7 @@ int main(int argc, char *argv[]){
 				ctalk_val = 2;
 			}else if(val == 1){
 				fprintf(stderr, "Done!\n");
-				fprintf(stderr, "Start decoding...\n");
+				fprintf(stderr, "Start decoding...\n\n");
 				if(!decode_264(vid_name)){
 					ctalk_val = 1;
 					fprintf(stderr, "'%s.264' was decoded to '%s.mkv'\n", vid_name, vid_name);

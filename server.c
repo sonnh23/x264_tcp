@@ -29,6 +29,7 @@ int main(int argc, char *argv[]){
 
 	linked_list_t* vid_list = ll_create();
 	handle_dtb(vid_list);
+	ll_print_vid_name(vid_list);
 	/*
 	//create welcoming socket 
 	*/
@@ -140,8 +141,62 @@ int main(int argc, char *argv[]){
 			}
 		}
 	}
+	ll_destroy(vid_list);
 	return 0;
 }
+
+int handle_dtb(linked_list_t* vid_list){
+	char* dir_mp4 = (char*) calloc(17, sizeof(char));	strcpy(dir_mp4, "svr_database/mp4");
+	char* dir_264 = (char*) calloc(17, sizeof(char));	strcpy(dir_264, "svr_database/264");
+	DIR *dp;
+	struct dirent *dirp;
+	if ((dp = opendir(dir_mp4)) == NULL){
+	return -1;
+	}
+	while ((dirp = readdir(dp)) != NULL){
+		if(strlen(dirp->d_name) >4){
+			char* vid_name = (char*) calloc(30, sizeof(char));
+			memset(vid_name, '\0', sizeof(vid_name));
+			char* path_mp4 = (char*) calloc(60, sizeof(char));
+			char* path_264 = (char*) calloc(60, sizeof(char));
+			strncpy(vid_name, dirp->d_name,  strlen(dirp->d_name) -4);
+			char* name_264 = (char*) calloc(sizeof(vid_name)+4, sizeof(char));	strcpy(name_264, vid_name);	strcat(name_264,".264");
+			strcpy(path_mp4, dir_mp4);	strcat(path_mp4, "/");	strcat(path_mp4, vid_name);	strcat(path_mp4, ".mp4");
+			strcpy(path_264, dir_264);	strcat(path_264, "/");	strcat(path_264, vid_name);	strcat(path_264, ".264");
+			long size_mp4 = -1, size_264 = -1;
+			bool encoded;
+			size_mp4 = get_file_size(path_mp4);
+			
+			if(search_file(dir_264, name_264)){
+				encoded = true;
+				size_264 = get_file_size(path_264);
+			}
+			else{
+				encoded = false;
+			}
+			vid_obj_t* vid_obj = (vid_obj_t*) calloc(1, sizeof(vid_obj_t));
+			vid_obj->name = vid_name;
+			vid_obj->path_mp4 = path_mp4;
+			vid_obj->size_mp4 = size_mp4;
+			vid_obj->size_264 = size_264;
+			vid_obj->encoded = encoded;
+			vid_obj->path_264 = path_264;
+			ll_add(vid_list, vid_obj);
+			/*
+			fprintf(stderr, "name: %s\n", vid_obj->name);
+			fprintf(stderr, "path_mp4: %s\n", vid_obj->path_mp4);
+			fprintf(stderr, "size_mp4: %ld bytes\n", size_mp4);
+			fprintf(stderr, "encoded: %d\n", encoded);
+			fprintf(stderr, "path_264: %s\n", vid_obj->path_264);
+			fprintf(stderr, "size_264: %ld bytes\n", size_264);
+			fprintf(stderr, "____________________________________\n");
+			*/
+		}
+	}
+	closedir(dp);
+	return 0;
+}
+
 #if 0
 int handle_dtb(int new_socket, char* file_name){
 	/*search in mp4 folder, check if video is exist or not*/
@@ -205,52 +260,3 @@ int handle_dtb(int new_socket, char* file_name){
 	return return_val;
 }
 #endif
-int handle_dtb(linked_list_t* vid_list){
-	char* dir_mp4 = (char*) calloc(17, sizeof(char));	strcpy(dir_mp4, "svr_database/mp4");
-	char* dir_264 = (char*) calloc(17, sizeof(char));	strcpy(dir_264, "svr_database/264");
-	DIR *dp;
-	struct dirent *dirp;
-	if ((dp = opendir(dir_mp4)) == NULL){
-	return -1;
-	}
-	while ((dirp = readdir(dp)) != NULL){
-		if(strlen(dirp->d_name) >4){
-			char* vid_name = (char*) calloc(30, sizeof(char));
-			memset(vid_name, '\0', sizeof(vid_name));
-			char* path_mp4 = (char*) calloc(60, sizeof(char));
-			char* path_264 = (char*) calloc(60, sizeof(char));
-			strncpy(vid_name, dirp->d_name,  strlen(dirp->d_name) -4);
-			char* name_264 = (char*) calloc(sizeof(vid_name)+4, sizeof(char));	strcpy(name_264, vid_name);	strcat(name_264,".264");
-			strcpy(path_mp4, dir_mp4);	strcat(path_mp4, "/");	strcat(path_mp4, vid_name);	strcat(path_mp4, ".mp4");
-			strcpy(path_264, dir_264);	strcat(path_264, "/");	strcat(path_264, vid_name);	strcat(path_264, ".264");
-			long size_mp4 = -1, size_264 = -1;
-			bool encoded;
-			size_mp4 = get_file_size(path_mp4);
-			
-			if(search_file(dir_264, name_264)){
-				encoded = true;
-				size_264 = get_file_size(path_264);
-			}
-			else{
-				encoded = false;
-			}
-			vid_obj_t* vid_obj = (vid_obj_t*) calloc(1, sizeof(vid_obj_t));
-			vid_obj->name = vid_name;
-			vid_obj->path_mp4 = path_mp4;
-			vid_obj->path_264 = path_264;
-			vid_obj->size_mp4 = size_mp4;
-			vid_obj->size_264 = size_264;
-			vid_obj->encoded = encoded;
-			ll_add(vid_list, vid_obj);
-			fprintf(stderr, "name: %s\n", vid_name);
-			fprintf(stderr, "path_mp4: %s\n", path_mp4);
-			fprintf(stderr, "path_264: %s\n", path_264);
-			fprintf(stderr, "size_mp4: %ld bytes\n", size_mp4);
-			fprintf(stderr, "encoded: %d\n", encoded);
-			fprintf(stderr, "size_264: %ld bytes\n", size_264);
-			fprintf(stderr, "____________________________________\n");
-		}
-	}
-	closedir(dp);
-	return 0;
-}
