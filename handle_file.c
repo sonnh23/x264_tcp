@@ -93,6 +93,7 @@ int search_file(char *dir_name, char* file_name){
 int recv_file(int socket, char* path_264){
 	char vid_len[20];
 	recv(socket, vid_len, sizeof(vid_len), 0);
+	char* ptr;
 	long file_size = atol(vid_len);		//get size of binary file.
 	if(file_size <= 0){
 		return -1;
@@ -118,9 +119,9 @@ int recv_file(int socket, char* path_264){
 			recv_msg(socket, buffer, len);
 			
 			bytes_left -= len;
-			//fprintf(stderr, "%d\t\t%ld\t\t%ld\t\t\n",count, len, bytes_left);
+			fprintf(stderr, "%d\t\t%ld\t\t%ld\t\t\n",count, len, bytes_left);
 			fwrite(buffer, 1, len, fp);
-			fprintf(stderr, "\rReceived %ld / %ld bytes\t", file_size - bytes_left, file_size);
+			//fprintf(stderr, "\rReceived %ld / %ld bytes\t", file_size - bytes_left, file_size);
 			count++;
 			if(bytes_left == 0 || len == 0){
 				return 1;
