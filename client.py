@@ -203,14 +203,16 @@ class Window(QWidget):
         file1.close()
 
     def open_file(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
-        if filename != '':
-            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(filename)))
-            self.playBtn.setEnabled(True)
+        #filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
+        #if filename != '':
+        self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile("/home/sonnh23/woman.mkv")))
+        self.playBtn.setEnabled(True)
 
     def play_video(self):
+        global video_state
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
+            video_state = False
         else:
             self.mediaPlayer.play()
 

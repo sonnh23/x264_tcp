@@ -91,10 +91,9 @@ int search_file(char *dir_name, char* file_name){
 	return 0;
 }
 int recv_file(int socket, char* path_264){
-	char buffer[msg_len];
-	recv(socket, buffer, msg_len, 0);
-	char* ptr;
-	long file_size = strtol(buffer, &ptr, 10);		//get size of binary file.
+	char vid_len[20];
+	recv(socket, vid_len, sizeof(vid_len), 0);
+	long file_size = atol(vid_len);		//get size of binary file.
 	if(file_size <= 0){
 		return -1;
 	}
@@ -104,6 +103,7 @@ int recv_file(int socket, char* path_264){
 	if(fp == NULL)
 		return 0;
 	else{
+		char buffer[msg_len];
 		bzero(buffer,msg_len);
 		long bytes_left = file_size;
 		size_t len;
